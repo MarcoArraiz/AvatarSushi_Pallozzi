@@ -113,15 +113,6 @@ const TASK_DEFINITIONS = {
           'Apagar calefacción'
         ]
       },
-      cocinaCierre: {
-        title: 'Cierre de Cocina',
-        tasks: [
-          'Limpiar superficies',
-          'Apagar equipos',
-          'Verificar refrigeración',
-          'Cerrar gas'
-        ]
-      },
       final: {
         title: 'Cierre General',
         tasks: [
