@@ -78,7 +78,6 @@ const TASK_DEFINITIONS = {
           'Revisar uniformes'
         ]
       },
-    }
   },
   cierre: {
     title: 'Cierre del Local',
