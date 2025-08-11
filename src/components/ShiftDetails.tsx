@@ -124,7 +124,7 @@ const TASK_DEFINITIONS = {
       }
     }
   }
-}
+},
 
 const ShiftDetails: React.FC<ShiftDetailsProps> = ({
   shift,
