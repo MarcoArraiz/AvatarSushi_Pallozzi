@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="es" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Protocolo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            animation: fadeIn 0.3s;
+            background-color: #fefefe;
+            margin: auto;
+            padding: 24px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 800px; /* Increased size */
+            border-radius: 12px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .shift-panel {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+    <script>
+        // Tailwind CSS Dark Mode configuration
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+</head>
+<body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300">
+
+    <div id="app" class="container mx-auto p-4 md:p-8">
+
+        <!-- Header -->
+        <header class="bg-white dark:bg-gray-800 shadow-md rounded-xl p-6 mb-8">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800 dark:text-white">App Protocol - AvatarSushi / Pallozzi</h1>
+                    <p class="text-gray-500 dark:text-gray-400 mt-1">Gestión Colaborativa de Turnos</p>
+                </div>
+                <div class="flex items-center gap-4">
+                     <div class="bg-yellow-200 text-yellow-800 font-semibold px-4 py-2 rounded-lg">
+                        Modo de Prueba
+                    </div>
+                    <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400">
+                        <i id="theme-toggle-dark-icon" class="fas fa-moon text-xl hidden"></i>
+                        <i id="theme-toggle-light-icon" class="fas fa-sun text-xl hidden"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Calendar Navigation -->
+        <div class="bg-white dark:bg-gray-800 shadow-md rounded-xl p-4 mb-8 flex justify-between items-center">
+            <button id="prev-day-btn" class="p-3 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-chevron-left"></i></button>
+            <h2 id="current-date-display" class="text-2xl font-bold text-center dark:text-white"></h2>
+            <button id="next-day-btn" class="p-3 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-chevron-right"></i></button>
+        </div>
+
+        <main id="main-content" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <div class="lg:col-span-1 space-y-8">
+                <!-- Waiter Management Panel -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                    <h2 class="text-2xl font-semibold mb-4 border-b pb-3 dark:text-white dark:border-gray-700">Gestión de Garzones</h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="waiter-name" placeholder="Nombre del Garzón" class="flex-grow p-3 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <button id="add-waiter-btn" class="bg-green-600 text-white font-bold p-3 rounded-lg hover:bg-green-700"><i class="fas fa-plus"></i></button>
+                    </div>
+                    <ul id="waiters-list" class="space-y-2 max-h-60 overflow-y-auto"></ul>
+                </div>
+            </div>
+
+            <div id="shifts-container" class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Shift panels will be rendered here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="assign-waiter-modal" class="modal">
+        <div class="modal-content bg-white dark:bg-gray-800 rounded-xl">
+            <h2 id="assign-modal-title" class="text-2xl font-bold mb-4 dark:text-white"></h2>
+            <div>
+                <h3 class="font-semibold mb-2 dark:text-gray-300">Seleccionar Garzones:</h3>
+                <div id="waiter-assignment-list" class="space-y-2 max-h-60 overflow-y-auto border dark:border-gray-700 rounded-lg p-3"></div>
+            </div>
+            <div class="flex justify-end gap-4 mt-6">
+                <button id="cancel-assign-btn" class="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">Cancelar</button>
+                <button id="confirm-assign-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">Asignar Equipo</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="shift-details-modal" class="modal" style="align-items: flex-start;">
+        <div class="modal-content mt-8 mb-8 bg-white dark:bg-gray-800 rounded-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="modal-title" class="text-2xl font-bold dark:text-white"></h2>
+                <button id="close-details-modal-btn" class="text-2xl text-gray-500 hover:text-gray-800 dark:text-gray-400">&times;</button>
+            </div>
+             <div class="mb-4 p-3 bg-gray-100 dark:bg-gray-900 rounded-lg">
+                <label for="acting-waiter-selector" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Actuando como:</label>
+                <select id="acting-waiter-selector" class="w-full p-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></select>
+            </div>
+            <div id="modal-body" class="space-y-6 max-h-[60vh] overflow-y-auto pr-2"></div>
+            <div class="mt-6 border-t dark:border-gray-700 pt-6 space-y-4">
+                <button id="get-summary-btn" class="w-full bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700">✨ Generar Resumen del Turno</button>
+                <div id="summary-container" class="hidden"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="report-incident-modal" class="modal">
+        <div class="modal-content bg-white dark:bg-gray-800 rounded-xl">
+            <h2 class="text-2xl font-bold mb-4 dark:text-white">Reportar Incidencia</h2>
+            <p id="incident-task-text" class="mb-4 p-2 bg-gray-100 dark:bg-gray-700 rounded-md"></p>
+            <div>
+                <label for="incident-note" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Detalle de la incidencia:</label>
+                <textarea id="incident-note" rows="4" class="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-red-500 focus:outline-none"></textarea>
+            </div>
+            <div class="flex justify-end gap-4 mt-6">
+                <button id="cancel-incident-btn" class="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500">Cancelar</button>
+                <button id="confirm-incident-btn" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700">Reportar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- In-Memory Database & State ---
+        let db = {
+            waiters: [], 
+            shifts: []
+        };
+        let activeShiftId = null;
+        let activeTaskId = null;
+        let currentDate = new Date();
+        let shiftTypeToAssign = null;
+
+        // --- DOM Elements ---
+        const waiterNameInput = document.getElementById('waiter-name');
+        const addWaiterBtn = document.getElementById('add-waiter-btn');
+        const waitersListEl = document.getElementById('waiters-list');
+        const shiftsContainer = document.getElementById('shifts-container');
+        const currentDateDisplay = document.getElementById('current-date-display');
+        const prevDayBtn = document.getElementById('prev-day-btn');
+        const nextDayBtn = document.getElementById('next-day-btn');
+        const assignWaiterModal = document.getElementById('assign-waiter-modal');
+        const assignModalTitle = document.getElementById('assign-modal-title');
+        const waiterAssignmentList = document.getElementById('waiter-assignment-list');
+        const cancelAssignBtn = document.getElementById('cancel-assign-btn');
+        const confirmAssignBtn = document.getElementById('confirm-assign-btn');
+        const detailsModal = document.getElementById('shift-details-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        const closeDetailsModalBtn = document.getElementById('close-details-modal-btn');
+        const getSummaryBtn = document.getElementById('get-summary-btn');
+        const summaryContainer = document.getElementById('summary-container');
+        const actingWaiterSelector = document.getElementById('acting-waiter-selector');
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+        const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+        const reportIncidentModal = document.getElementById('report-incident-modal');
+        const incidentTaskText = document.getElementById('incident-task-text');
+        const incidentNote = document.getElementById('incident-note');
+        const cancelIncidentBtn = document.getElementById('cancel-incident-btn');
+        const confirmIncidentBtn = document.getElementById('confirm-incident-btn');
+
+        // --- Task Definitions ---
+        const tasksDefinition = {
+            apertura: { title: 'Apertura', icon: 'fa-sun', color: 'bg-yellow-400', subcategories: {
+                terraza: { title: 'Montaje de Terraza', tasks: ["Sacar mesas y sillas.", "Ordenar terraza.", "Instalar calefacción.", "Limpiar mesas y sillas.", "Colocar QR y velas.", "Verificar iluminación exterior."] },
+                salon: { title: 'Limpieza del Salón', tasks: ["Sanitizar superficies.", "Barrer y trapear.", "Revisar baños.", "Encender climatización y TV.", "Verificar música ambiental."] },
+                miseEnPlace: { title: 'Área de Garzón', tasks: ["Abastecer insumos.", "Verificar Transbank.", "Conocer 86s y promos.", "Alinear equipo.", "Revisar uniformes."] },
+                cocina: { title: 'Preparación de Cocina', tasks: ["Verificar inventario.", "Preparar mise en place.", "Encender equipos.", "Revisar temperaturas."] }
+            }},
+            cierre: { title: 'Cierre del Local', icon: 'fa-moon', color: 'bg-indigo-400', subcategories: {
+                preCierre: { title: 'Preparativos', tasks: ["Anunciar última ronda.", "Tomar últimos pedidos.", "Iniciar limpieza gradual."] },
+                salonCierre: { title: 'Cierre de Salón', tasks: ["Recolectar loza.", "Barrer y trapear.", "Limpiar mesas y sillas.", "Limpieza profunda de baños.", "Rellenar salsas y reponer insumos.", "Apagar TV y música."] },
+                terrazaCierre: { title: 'Cierre de Terraza', tasks: ["Recolectar loza.", "Limpiar y guardar mesas/sillas.", "Retirar gas de estufas.", "Guardar carteles y artefactos.", "Barrer y lavar piso (si aplica).", "Apagar calefacción."] },
+                cocinaCierre: { title: 'Cierre de Cocina', tasks: ["Limpiar superficies.", "Apagar equipos.", "Verificar refrigeración.", "Cerrar gas."] },
+                final: { title: 'Cierre General', tasks: ["Verificar carga de Transbank.", "Apagar artefactos y luces.", "Cerrar llaves de agua.", "Marcar salida.", "Activar alarma."] }
+            }}
+        };
+        
+        // Función alternativa para OpenAI
+        async function callOpenAI(prompt, elementToUpdate) {
+            elementToUpdate.innerHTML = `<div class="flex items-center justify-center text-gray-600 dark:text-gray-300"><i class="fas fa-spinner fa-spin text-2xl text-blue-500"></i><p class="ml-3">Generando respuesta...</p></div>`;
+            const apiKey = ""; // Tu API key de OpenAI
+            const apiUrl = "https://api.openai.com/v1/chat/completions";
+            const payload = {
+                model: "gpt-4o-mini", // Cambia el modelo aquí: gpt-4o, gpt-4o-mini, gpt-3.5-turbo
+                messages: [{ role: "user", content: prompt }],
+                max_tokens: 1000
+            };
+            try {
+                const response = await fetch(apiUrl, { 
+                    method: 'POST', 
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    }, 
+                    body: JSON.stringify(payload) 
+                });
+                if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+                const result = await response.json();
+                if (result.choices && result.choices.length > 0) {
+                    elementToUpdate.innerHTML = result.choices[0].message.content;
+                } else {
+                    throw new Error("No content from API.");
+                }
+            } catch (error) {
+                console.error("OpenAI API call failed:", error);
+                elementToUpdate.innerHTML = `<p class="text-red-500">Error al contactar la IA.</p>`;
+            }
+        }
+        
+        async function callGemini(prompt, elementToUpdate) {
+            elementToUpdate.innerHTML = `<div class="flex items-center justify-center text-gray-600 dark:text-gray-300"><i class="fas fa-spinner fa-spin text-2xl text-blue-500"></i><p class="ml-3">Generando respuesta...</p></div>`;
+            const apiKey = ""; 
+            // Cambia el modelo aquí - opciones disponibles:
+            // gemini-1.5-flash
+            // gemini-1.5-pro
+            // gemini-2.0-flash-exp
+            // gemini-2.0-pro-exp
+            const modelName = "gemini-1.5-flash"; // Cambia este valor
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+            try {
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0) {
+                    elementToUpdate.innerHTML = result.candidates[0].content.parts[0].text;
+                } else {
+                    throw new Error("No content from API.");
+                }
+            } catch (error) {
+                console.error("Gemini API call failed:", error);
+                elementToUpdate.innerHTML = `<p class="text-red-500">Error al contactar la IA.</p>`;
+            }
+        }
+
+        // --- Theme Management ---
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                themeToggleLightIcon.classList.remove('hidden');
+                themeToggleDarkIcon.classList.add('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                themeToggleDarkIcon.classList.remove('hidden');
+                themeToggleLightIcon.classList.add('hidden');
+            }
+        }
+        
+        function toggleTheme() {
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        }
+
+        // --- Core App Logic ---
+        function toISODateString(date) { return date.toISOString().split('T')[0]; }
+        
+        function updateDateDisplay() {
+            currentDateDisplay.textContent = currentDate.toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            ensureShiftsForDay(currentDate);
+            renderShiftsForDay();
+        }
+
+        function changeDay(offset) {
+            currentDate.setDate(currentDate.getDate() + offset);
+            updateDateDisplay();
+        }
+
+        function addWaiter() {
+            const name = waiterNameInput.value.trim();
+            if (name) {
+                db.waiters.push({ id: `w_${Date.now()}`, name });
+                waiterNameInput.value = '';
+                renderWaitersList();
+            }
+        }
+
+        function deleteWaiter(waiterId) {
+            db.waiters = db.waiters.filter(w => w.id !== waiterId);
+            renderWaitersList();
+        }
+
+        function renderWaitersList() {
+            waitersListEl.innerHTML = db.waiters.length === 0 ? `<li class="text-gray-500 dark:text-gray-400 text-center p-2">No hay garzones.</li>` : '';
+            db.waiters.forEach(waiter => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-2 rounded-lg';
+                li.innerHTML = `<span class="font-medium dark:text-gray-200">${waiter.name}</span><button data-waiter-id="${waiter.id}" class="delete-waiter-btn text-red-500 hover:text-red-700"><i class="fas fa-trash-alt"></i></button>`;
+                li.querySelector('.delete-waiter-btn').addEventListener('click', () => deleteWaiter(waiter.id));
+                waitersListEl.appendChild(li);
+            });
+        }
+
+        function ensureShiftsForDay(date) {
+            const dateString = toISODateString(date);
+            ['apertura', 'cierre'].forEach(type => {
+                const shiftExists = db.shifts.some(s => s.date === dateString && s.type === type);
+                if (!shiftExists) {
+                    const newShift = {
+                        id: `s_${dateString}_${type}`,
+                        name: `Turno de ${type}`,
+                        type: type,
+                        date: dateString,
+                        createdAt: new Date(),
+                        assignedWaiterIds: [],
+                        tasks: []
+                    };
+                    const tasksForShiftType = tasksDefinition[type];
+                    Object.entries(tasksForShiftType.subcategories).forEach(([subKey, subValue]) => {
+                        subValue.tasks.forEach(taskText => {
+                            newShift.tasks.push({
+                                id: `t_${Date.now()}_${Math.random()}`,
+                                text: taskText,
+                                status: 'pending',
+                                completedBy: null,
+                                completedAt: null,
+                                incident: null, // { reportedBy, note, reportedAt }
+                                category: type,
+                                subcategory: subKey,
+                            });
+                        });
+                    });
+                    db.shifts.push(newShift);
+                }
+            });
+        }
+        
+        function openAssignWaiterModal(type) {
+            shiftTypeToAssign = type;
+            const shift = db.shifts.find(s => s.date === toISODateString(currentDate) && s.type === type);
+            if (!shift) return;
+
+            assignModalTitle.textContent = `Asignar Equipo a Turno de ${type}`;
+            waiterAssignmentList.innerHTML = '';
+            
+            if (db.waiters.length === 0) {
+                 waiterAssignmentList.innerHTML = `<p class="text-center text-red-500">Añade garzones primero.</p>`;
+                 confirmAssignBtn.disabled = true;
+            } else {
+                confirmAssignBtn.disabled = false;
+                db.waiters.forEach(waiter => {
+                    const isChecked = shift.assignedWaiterIds.includes(waiter.id);
+                    const div = document.createElement('div');
+                    div.innerHTML = `<label class="flex items-center p-1 dark:text-gray-300"><input type="checkbox" data-waiter-id="${waiter.id}" class="h-5 w-5 rounded" ${isChecked ? 'checked' : ''}><span class="ml-3">${waiter.name}</span></label>`;
+                    waiterAssignmentList.appendChild(div);
+                });
+            }
+            assignWaiterModal.style.display = 'flex';
+        }
+
+        function confirmAssignment() {
+            const shift = db.shifts.find(s => s.date === toISODateString(currentDate) && s.type === shiftTypeToAssign);
+            if (!shift) return;
+
+            const assignedWaiterIds = Array.from(waiterAssignmentList.querySelectorAll('input:checked')).map(input => input.dataset.waiterId);
+            shift.assignedWaiterIds = assignedWaiterIds;
+            
+            renderShiftsForDay();
+            assignWaiterModal.style.display = 'none';
+        }
+
+        function renderShiftsForDay() {
+            shiftsContainer.innerHTML = '';
+            ['apertura', 'cierre'].forEach(type => {
+                const shift = db.shifts.find(s => s.date === toISODateString(currentDate) && s.type === type);
+                if (shift) {
+                    shiftsContainer.appendChild(renderShiftPanel(shift));
+                }
+            });
+        }
+
+        function renderShiftPanel(shift) {
+            const panel = document.createElement('div');
+            panel.className = 'shift-panel bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md';
+            
+            const typeLabel = shift.type.charAt(0).toUpperCase() + shift.type.slice(1);
+            const typeColor = shift.type === 'apertura' ? 'text-yellow-600' : 'text-indigo-600';
+            const icon = shift.type === 'apertura' ? 'fa-sun' : 'fa-moon';
+
+            if (shift.assignedWaiterIds.length === 0) {
+                panel.innerHTML = `
+                    <div class="text-center">
+                        <i class="fas ${icon} fa-3x ${typeColor} mb-4"></i>
+                        <h3 class="text-2xl font-bold mb-4 dark:text-white">Turno de ${typeLabel}</h3>
+                        <p class="text-gray-500 dark:text-gray-400 mb-6">No hay equipo asignado.</p>
+                        <button data-shift-type="${shift.type}" class="assign-team-btn w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-users mr-2"></i> Asignar Equipo
+                        </button>
+                    </div>
+                `;
+            } else {
+                const completedTasks = shift.tasks.filter(t => t.status === 'completed').length;
+                const progress = shift.tasks.length > 0 ? Math.round((completedTasks / shift.tasks.length) * 100) : 0;
+                
+                let assignedWaitersHtml = '<div class="flex -space-x-2 overflow-hidden mb-4">';
+                shift.assignedWaiterIds.forEach(id => {
+                    const waiter = db.waiters.find(w => w.id === id);
+                    if (waiter) {
+                        const initial = waiter.name.charAt(0).toUpperCase();
+                        assignedWaitersHtml += `<div class="inline-flex items-center justify-center w-10 h-10 text-sm font-bold text-white bg-gray-500 border-2 border-white rounded-full" title="${waiter.name}">${initial}</div>`;
+                    }
+                });
+                assignedWaitersHtml += '</div>';
+
+                panel.innerHTML = `
+                    <div class="cursor-pointer" data-shift-id="${shift.id}">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-xl font-bold truncate pr-2 dark:text-white">Turno de ${typeLabel}</h3>
+                            <i class="fas ${icon} ${typeColor}"></i>
+                        </div>
+                        ${assignedWaitersHtml}
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5"><div class="bg-blue-600 h-2.5 rounded-full" style="width: ${progress}%"></div></div>
+                        <p class="text-right text-sm mt-1 font-semibold dark:text-gray-300">${progress}% Completado</p>
+                    </div>
+                    <button data-shift-type="${shift.type}" class="assign-team-btn text-sm text-blue-600 dark:text-blue-400 hover:underline mt-4">Reasignar Equipo</button>
+                `;
+            }
+            return panel;
+        }
+
+        function openDetailsModal(shiftId) {
+            activeShiftId = shiftId;
+            const shift = db.shifts.find(s => s.id === shiftId);
+            if (!shift || shift.assignedWaiterIds.length === 0) return;
+
+            modalTitle.textContent = `Detalles del Turno de ${shift.type}`;
+            summaryContainer.style.display = 'none';
+
+            actingWaiterSelector.innerHTML = '';
+            shift.assignedWaiterIds.forEach(waiterId => {
+                const waiter = db.waiters.find(w => w.id === waiterId);
+                if(waiter) {
+                    const option = document.createElement('option');
+                    option.value = waiter.id;
+                    option.textContent = waiter.name;
+                    actingWaiterSelector.appendChild(option);
+                }
+            });
+
+            renderShiftDetailsBody();
+            detailsModal.style.display = 'flex';
+        }
+
+        function renderShiftDetailsBody() {
+            const shift = db.shifts.find(s => s.id === activeShiftId);
+            if (!shift) return;
+            
+            modalBody.innerHTML = '';
+            const categoryKey = shift.type;
+            const categoryValue = tasksDefinition[categoryKey];
+            if (!categoryValue) return;
+
+            const categoryContainer = document.createElement('div');
+            categoryContainer.innerHTML = `<div class="font-semibold text-lg p-2 rounded-md flex items-center justify-between ${categoryValue.color} text-white"><span><i class="fas ${categoryValue.icon} mr-2"></i>${categoryValue.title}</span></div>`;
+            
+            Object.entries(categoryValue.subcategories).forEach(([subKey, subValue]) => {
+                const subCatTitle = document.createElement('h4');
+                subCatTitle.className = "font-semibold text-md mt-4 mb-2 dark:text-gray-200";
+                subCatTitle.textContent = subValue.title;
+                categoryContainer.appendChild(subCatTitle);
+
+                shift.tasks.filter(t => t.subcategory === subKey).forEach(task => {
+                    const taskItem = document.createElement('div');
+                    taskItem.className = 'flex items-center justify-between p-2 rounded-md';
+
+                    let actionHtml = '';
+                    if (task.status === 'pending') {
+                        actionHtml = `<button data-task-id="${task.id}" class="complete-btn bg-green-500 text-white px-3 py-1 text-sm rounded-md hover:bg-green-600">Completar</button>`;
+                    } else {
+                        const waiterName = db.waiters.find(w => w.id === task.completedBy)?.name || '';
+                        const time = new Date(task.completedAt).toLocaleTimeString('es-CL', {hour: '2-digit', minute:'2-digit'});
+                        actionHtml = `<span class="text-xs font-semibold text-green-700 dark:text-green-400">OK por ${waiterName} a las ${time}</span>`;
+                    }
+                    
+                    const incidentIconColor = task.incident ? 'text-red-500' : 'text-gray-400 dark:text-gray-500';
+                    
+                    let incidentTitle = 'Reportar incidencia';
+                    if (task.incident) {
+                        const reporter = db.waiters.find(w => w.id === task.incident.reportedBy);
+                        const reporterName = reporter ? reporter.name : 'Desconocido';
+                        incidentTitle = `Incidencia reportada por ${reporterName}: ${task.incident.note}`;
+                    }
+
+                    taskItem.innerHTML = `
+                        <div class="flex items-center">
+                            <button class="report-incident-btn mr-3" data-task-id="${task.id}" title="${incidentTitle}">
+                                <i class="fas fa-flag ${incidentIconColor}"></i>
+                            </button>
+                            <span class="${task.status === 'completed' ? 'line-through text-gray-500' : ''}">${task.text}</span>
+                        </div>
+                        <div>${actionHtml}</div>`;
+                    categoryContainer.appendChild(taskItem);
+                });
+            });
+            modalBody.appendChild(categoryContainer);
+        }
+        
+        function openReportIncidentModal(taskId) {
+            activeTaskId = taskId;
+            const shift = db.shifts.find(s => s.id === activeShiftId);
+            const task = shift.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            incidentTaskText.textContent = task.text;
+            incidentNote.value = task.incident ? task.incident.note : '';
+            reportIncidentModal.style.display = 'flex';
+        }
+
+        function confirmIncident() {
+            const shift = db.shifts.find(s => s.id === activeShiftId);
+            const task = shift.tasks.find(t => t.id === activeTaskId);
+            const actingAs = actingWaiterSelector.value;
+            if (!task || !actingAs) return;
+            
+            const note = incidentNote.value.trim();
+            if (note) {
+                 task.incident = {
+                    reportedBy: actingAs,
+                    note: note,
+                    reportedAt: new Date()
+                };
+            } else {
+                task.incident = null; // Clear incident if note is empty
+            }
+
+            renderShiftDetailsBody();
+            reportIncidentModal.style.display = 'none';
+        }
+
+        function closeDetailsModal() {
+            detailsModal.style.display = 'none';
+            activeShiftId = null;
+        }
+
+        function updateTask(taskId) {
+            const shift = db.shifts.find(s => s.id === activeShiftId);
+            const task = shift.tasks.find(t => t.id === taskId);
+            const actingAs = actingWaiterSelector.value;
+            if (!task || !actingAs || task.status === 'completed') return;
+
+            task.status = 'completed';
+            task.completedBy = actingAs;
+            task.completedAt = new Date();
+            
+            renderShiftDetailsBody();
+            renderShiftsForDay();
+        }
+        
+        function handleSummaryRequest() {
+            const shift = db.shifts.find(s => s.id === activeShiftId);
+            if (!shift) return;
+            let dataForPrompt = `Resumen del Turno de "${shift.type}" para el día ${shift.date}:\n\n`;
+            shift.assignedWaiterIds.forEach(waiterId => {
+                const waiter = db.waiters.find(w => w.id === waiterId);
+                const waiterTasks = shift.tasks.filter(t => t.completedBy === waiterId);
+                dataForPrompt += `Garzón: ${waiter.name}\n- Tareas completadas: ${waiterTasks.length}\n`;
+                waiterTasks.forEach(t => dataForPrompt += `  - ${t.text}\n`);
+            });
+            const pendingTasks = shift.tasks.filter(t => t.status !== 'completed');
+            if(pendingTasks.length > 0) {
+                dataForPrompt += `\nTareas Pendientes (${pendingTasks.length}):\n`;
+                pendingTasks.forEach(t => dataForPrompt += `- ${t.text}\n`);
+            } else {
+                dataForPrompt += `\n¡Felicidades! Todas las tareas del turno fueron completadas.\n`;
+            }
+            const incidents = shift.tasks.filter(t => t.incident);
+            if(incidents.length > 0) {
+                dataForPrompt += `\nIncidencias Reportadas (${incidents.length}):\n`;
+                incidents.forEach(t => {
+                    const reporter = db.waiters.find(w => w.id === t.incident.reportedBy)?.name || 'Desconocido';
+                    dataForPrompt += `- Tarea "${t.text}": ${t.incident.note} (Reportado por ${reporter})\n`;
+                });
+            }
+
+            const prompt = `Eres un asistente de gerencia. Genera un resumen conciso y profesional del estado de un turno. Analiza el progreso, destaca el rendimiento, menciona tareas pendientes e INCIDENCIAS, y finaliza con una nota positiva o sugerencia.\n\nDatos:\n${dataForPrompt}`;
+            summaryContainer.style.display = 'block';
+            summaryContainer.className = 'gemini-response dark:bg-blue-900/50 dark:border-blue-500';
+            callGemini(prompt, summaryContainer);
+        }
+
+        // --- Event Listeners ---
+        addWaiterBtn.addEventListener('click', addWaiter);
+        waiterNameInput.addEventListener('keypress', e => e.key === 'Enter' && addWaiter());
+        
+        cancelAssignBtn.addEventListener('click', () => assignWaiterModal.style.display = 'none');
+        confirmAssignBtn.addEventListener('click', confirmAssignment);
+
+        closeDetailsModalBtn.addEventListener('click', closeDetailsModal);
+        
+        prevDayBtn.addEventListener('click', () => changeDay(-1));
+        nextDayBtn.addEventListener('click', () => changeDay(1));
+        getSummaryBtn.addEventListener('click', handleSummaryRequest);
+        actingWaiterSelector.addEventListener('change', renderShiftDetailsBody);
+        themeToggleBtn.addEventListener('click', toggleTheme);
+        
+        cancelIncidentBtn.addEventListener('click', () => reportIncidentModal.style.display = 'none');
+        confirmIncidentBtn.addEventListener('click', confirmIncident);
+
+        shiftsContainer.addEventListener('click', e => {
+            const assignBtn = e.target.closest('.assign-team-btn');
+            if (assignBtn) {
+                openAssignWaiterModal(assignBtn.dataset.shiftType);
+                return;
+            }
+            const detailsCard = e.target.closest('.cursor-pointer');
+            if (detailsCard) {
+                openDetailsModal(detailsCard.dataset.shiftId);
+            }
+        });
+
+        modalBody.addEventListener('click', e => {
+            const completeButton = e.target.closest('.complete-btn');
+            if (completeButton) {
+                updateTask(completeButton.dataset.taskId);
+                return;
+            }
+            const reportButton = e.target.closest('.report-incident-btn');
+            if (reportButton) {
+                openReportIncidentModal(reportButton.dataset.taskId);
+            }
+        });
+
+        window.addEventListener('click', e => {
+            if (e.target == assignWaiterModal) assignWaiterModal.style.display = 'none';
+            if (e.target == detailsModal) closeDetailsModal();
+            if (e.target == reportIncidentModal) reportIncidentModal.style.display = 'none';
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize theme
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                applyTheme(savedTheme);
+            } else {
+                applyTheme('light');
+            }
+
+            renderWaitersList();
+            updateDateDisplay();
+        });
+    </script>
+</body>
+</html>

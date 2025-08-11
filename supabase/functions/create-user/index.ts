@@ -1,0 +1,76 @@
+import { createClient } from 'npm:@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+interface CreateUserRequest {
+  email: string;
+  password: string;
+  full_name: string;
+  role: 'supervisor' | 'garzon';
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
+  try {
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    const { email, password, full_name, role }: CreateUserRequest = await req.json()
+
+    // Create user in Supabase Auth
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true
+    })
+
+    if (authError) {
+      throw authError
+    }
+
+    // Create user profile
+    const { error: profileError } = await supabaseAdmin
+      .from('user_profiles')
+      .insert({
+        id: authData.user.id,
+        email,
+        full_name,
+        role
+      })
+
+    if (profileError) {
+      throw profileError
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, user: authData.user }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      },
+    )
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      },
+    )
+  }
+})
