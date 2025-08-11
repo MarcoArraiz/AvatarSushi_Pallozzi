@@ -55,7 +55,6 @@ const TASK_DEFINITIONS = {
           'Instalar calefacción',
           'Limpiar mesas y sillas',
           'Colocar QR y velas',
-          'Verificar iluminación exterior'
         ]
       },
       salon: {
