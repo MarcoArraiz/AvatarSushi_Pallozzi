@@ -78,15 +78,6 @@ const TASK_DEFINITIONS = {
           'Revisar uniformes'
         ]
       },
-      cocina: {
-        title: 'Preparación de Cocina',
-        tasks: [
-          'Verificar inventario',
-          'Preparar mise en place',
-          'Encender equipos',
-          'Revisar temperaturas'
-        ]
-      }
     }
   },
   cierre: {
