@@ -76,7 +76,7 @@ const TASK_DEFINITIONS = {
           'Alinear equipo',
           'Revisar uniformes'
         ]
-      },
+      }
     }
   },
   cierre: {
@@ -124,7 +124,6 @@ const TASK_DEFINITIONS = {
       }
     }
   }
-}
 };
 
 const ShiftDetails: React.FC<ShiftDetailsProps> = ({
