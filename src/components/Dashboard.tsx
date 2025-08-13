@@ -37,6 +37,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [showLocations, setShowLocations] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
+  const [viewingLocationShift, setViewingLocationShift] = useState(false);
 
   useEffect(() => {
     loadUserProfile();
@@ -152,6 +153,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       <LocationDetails
         location={selectedLocation}
         onBack={() => setSelectedLocation(null)}
+        onViewShift={(shift) => {
+          setSelectedShift(shift);
+          setViewingLocationShift(true);
+        }}
       />
     );
   }
@@ -160,6 +165,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     return (
       <LocationsManagement
         onBack={() => setShowLocations(false)}
+        onViewLocation={(location) => setSelectedLocation(location)}
       />
     );
   }
@@ -170,8 +176,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         shift={selectedShift}
         user={user}
         userProfile={userProfile}
-        onBack={() => setSelectedShift(null)}
-        onUpdate={loadShiftsForDate}
+        onBack={() => {
+          setSelectedShift(null);
+          if (viewingLocationShift) {
+            setViewingLocationShift(false);
+            // Don't reload shifts for main dashboard when coming from location view
+          } else {
+            loadShiftsForDate();
+          }
+        }}
+        onUpdate={() => {
+          if (!viewingLocationShift) {
+            loadShiftsForDate();
+          }
+        }}
       />
     );
   }

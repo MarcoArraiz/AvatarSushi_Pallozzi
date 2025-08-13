@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 
 interface LocationsManagementProps {
   onBack: () => void;
+  onViewLocation: (location: Location) => void;
 }
 
 interface Location {
@@ -19,7 +20,7 @@ interface LocationStats {
   assignedWorkers: number;
 }
 
-const LocationsManagement: React.FC<LocationsManagementProps> = ({ onBack }) => {
+const LocationsManagement: React.FC<LocationsManagementProps> = ({ onBack, onViewLocation }) => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationStats, setLocationStats] = useState<Record<string, LocationStats>>({});
   const [loading, setLoading] = useState(true);
@@ -274,7 +275,7 @@ const LocationsManagement: React.FC<LocationsManagementProps> = ({ onBack }) => 
 
               {/* Actions */}
               <button
-                onClick={() => setSelectedLocation(location)}
+                onClick={() => onViewLocation(location)}
                 className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
               >
                 <Eye className="w-4 h-4" />

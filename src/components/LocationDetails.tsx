@@ -9,6 +9,7 @@ interface LocationDetailsProps {
     address: string;
   };
   onBack: () => void;
+  onViewShift: (shift: any) => void;
 }
 
 interface Shift {
@@ -42,7 +43,7 @@ interface Incident {
   reported_at: string;
 }
 
-const LocationDetails: React.FC<LocationDetailsProps> = ({ location, onBack }) => {
+const LocationDetails: React.FC<LocationDetailsProps> = ({ location, onBack, onViewShift }) => {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -55,6 +56,7 @@ const LocationDetails: React.FC<LocationDetailsProps> = ({ location, onBack }) =
   }, [location.id, selectedDate]);
 
   const loadLocationData = async () => {
+    setLoading(true);
     try {
       // Load shifts for selected date
       const { data: shiftsData } = await supabase
@@ -63,6 +65,21 @@ const LocationDetails: React.FC<LocationDetailsProps> = ({ location, onBack }) =
         .eq('location_id', location.id)
         .eq('date', selectedDate)
         .order('type');
+
+      // If no shifts exist for this location and date, create them
+      if (!shiftsData || shiftsData.length === 0) {
+        await createShiftsForLocation(location.id, selectedDate);
+        // Reload after creating
+        const { data: newShiftsData } = await supabase
+          .from('shifts')
+          .select('*')
+          .eq('location_id', location.id)
+          .eq('date', selectedDate)
+          .order('type');
+        setShifts(newShiftsData || []);
+      } else {
+        setShifts(shiftsData);
+      }
 
       setShifts(shiftsData || []);
 
@@ -113,6 +130,33 @@ const LocationDetails: React.FC<LocationDetailsProps> = ({ location, onBack }) =
     }
   };
 
+  const createShiftsForLocation = async (locationId: string, date: string) => {
+    const shiftTypes = ['apertura', 'cierre'];
+    
+    for (const type of shiftTypes) {
+      // Check if shift already exists
+      const { data: existingShift } = await supabase
+        .from('shifts')
+        .select('id')
+        .eq('location_id', locationId)
+        .eq('date', date)
+        .eq('type', type)
+        .eq('area', 'salon')
+        .maybeSingle();
+
+      if (!existingShift) {
+        await supabase
+          .from('shifts')
+          .insert({
+            location_id: locationId,
+            date: date,
+            type: type,
+            area: 'salon',
+            assigned_users: []
+          });
+      }
+    }
+  };
   const getUserName = (userId: string) => {
     const user = users.find(u => u.id === userId);
     return user?.full_name || 'Usuario desconocido';
@@ -242,6 +286,15 @@ const LocationDetails: React.FC<LocationDetailsProps> = ({ location, onBack }) =
                   <p className="text-xs text-gray-500">Incidencias</p>
                 </div>
               </div>
+
+              {/* View Shift Button */}
+              <button
+                onClick={() => onViewShift(shift)}
+                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 mb-4"
+              >
+                <Eye className="w-4 h-4" />
+                <span>Ver Turno Detallado</span>
+              </button>
 
               {/* Assigned Team */}
               {shift.assigned_users.length > 0 && (
