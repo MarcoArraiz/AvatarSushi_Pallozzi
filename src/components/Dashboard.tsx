@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
-import { ChevronLeft, ChevronRight, Users, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users, Settings, MapPin } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import ShiftPanel from './ShiftPanel';
 import PersonnelManagement from './PersonnelManagement';
 import ShiftDetails from './ShiftDetails';
+import LocationsManagement from './LocationsManagement';
+import LocationDetails from './LocationDetails';
 
 interface DashboardProps {
   user: User;
@@ -32,6 +34,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPersonnel, setShowPersonnel] = useState(false);
+  const [showLocations, setShowLocations] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
 
   useEffect(() => {
@@ -143,6 +147,23 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     );
   }
 
+  if (selectedLocation) {
+    return (
+      <LocationDetails
+        location={selectedLocation}
+        onBack={() => setSelectedLocation(null)}
+      />
+    );
+  }
+
+  if (showLocations && userProfile.role === 'supervisor') {
+    return (
+      <LocationsManagement
+        onBack={() => setShowLocations(false)}
+      />
+    );
+  }
+
   if (selectedShift) {
     return (
       <ShiftDetails
@@ -178,6 +199,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           </div>
           {userProfile.role === 'supervisor' && (
             <div className="flex space-x-3">
+              <button
+                onClick={() => setShowLocations(true)}
+                className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <MapPin className="w-4 h-4" />
+                <span>Gestionar Locales</span>
+              </button>
               <button
                 onClick={() => setShowPersonnel(true)}
                 className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"

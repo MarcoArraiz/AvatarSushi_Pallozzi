@@ -10,6 +10,7 @@ interface ShiftDetailsProps {
     type: 'apertura' | 'cierre';
     date: string;
     assigned_users: string[];
+    location_id?: string;
   };
   user: SupabaseUser;
   userProfile: {

@@ -10,6 +10,7 @@ interface ShiftPanelProps {
     type: 'apertura' | 'cierre';
     area: string;
     assigned_users: string[];
+    location_id?: string;
   };
   userProfile: {
     role: 'supervisor' | 'garzon';
