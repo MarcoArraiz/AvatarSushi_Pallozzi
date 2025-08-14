@@ -38,6 +38,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
   const [viewingLocationShift, setViewingLocationShift] = useState(false);
+  const [locationContext, setLocationContext] = useState<any>(null);
 
   useEffect(() => {
     loadUserProfile();
@@ -135,6 +136,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         onViewShift={(shift) => {
           setSelectedShift(shift);
           setViewingLocationShift(true);
+          setLocationContext(selectedLocation);
         }}
       />
     );
@@ -155,8 +157,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         shift={selectedShift}
         user={user}
         userProfile={userProfile}
+        locationContext={locationContext}
         onBack={() => {
           setSelectedShift(null);
+          setLocationContext(null);
           if (viewingLocationShift) {
             setViewingLocationShift(false);
             // Don't reload shifts for main dashboard when coming from location view

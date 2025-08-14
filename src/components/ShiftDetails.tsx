@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle, Flag, Clock, User, AlertTriangle } from 'lucide
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import IncidentModal from './IncidentModal';
+import AssignTeamModal from './AssignTeamModal';
 
 interface ShiftDetailsProps {
   shift: {
@@ -15,6 +16,11 @@ interface ShiftDetailsProps {
   user: SupabaseUser;
   userProfile: {
     role: 'supervisor' | 'garzon';
+  };
+  locationContext?: {
+    id: string;
+    name: string;
+    address: string;
   };
   onBack: () => void;
   onUpdate: () => void;
@@ -141,6 +147,7 @@ const ShiftDetails: React.FC<ShiftDetailsProps> = ({
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showIncidentModal, setShowIncidentModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
 
   useEffect(() => {
     loadShiftDetails();
@@ -243,6 +250,12 @@ const ShiftDetails: React.FC<ShiftDetailsProps> = ({
     loadShiftDetails();
   };
 
+  const handleTeamAssigned = () => {
+    setShowAssignModal(false);
+    loadShiftDetails();
+    onUpdate();
+  };
+
   const getTaskIncident = (taskId: string) => {
     return incidents.find(incident => incident.task_id === taskId);
   };
@@ -278,6 +291,11 @@ const ShiftDetails: React.FC<ShiftDetailsProps> = ({
               <h2 className="text-2xl font-bold text-gray-800 capitalize">
                 Turno de {shift.type}
               </h2>
+              {locationContext && (
+                <p className="text-sm text-gray-500 mb-1">
+                  {locationContext.name} - {locationContext.address}
+                </p>
+              )}
               <p className="text-gray-600">
                 {new Date(shift.date).toLocaleDateString('es-CL', {
                   weekday: 'long',
@@ -288,6 +306,19 @@ const ShiftDetails: React.FC<ShiftDetailsProps> = ({
               </p>
             </div>
           </div>
+          
+          {/* Assign Team Button for Supervisors */}
+          {userProfile.role === 'supervisor' && (
+            <button
+              onClick={() => setShowAssignModal(true)}
+              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Users className="w-4 h-4" />
+              <span>
+                {assignedUsers.length > 0 ? 'Reasignar Equipo' : 'Asignar Equipo'}
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Acting As Selector */}
@@ -310,6 +341,53 @@ const ShiftDetails: React.FC<ShiftDetailsProps> = ({
           </div>
         )}
       </div>
+
+      {/* Team Assignment Section for Supervisors */}
+      {userProfile.role === 'supervisor' && assignedUsers.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
+            <Users className="w-5 h-5 text-blue-600" />
+            <span>Equipo Asignado</span>
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {assignedUsers.map((user) => {
+              const userTasks = tasks.filter(task => task.completed_by === user.id);
+              const completedCount = userTasks.length;
+              
+              return (
+                <div key={user.id} className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="bg-blue-100 text-blue-600 p-2 rounded-full">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-800">{user.full_name}</p>
+                      <p className="text-sm text-gray-500">{user.email}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-green-600">{completedCount}</p>
+                    <p className="text-sm text-gray-500">Tareas Completadas</p>
+                  </div>
+                  
+                  {userTasks.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                      <p className="text-xs font-medium text-gray-700">Últimas tareas:</p>
+                      {userTasks.slice(-2).map((task) => (
+                        <p key={task.id} className="text-xs text-gray-600 truncate">
+                          • {task.text}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Tasks by Subcategory */}
       <div className="space-y-6">
@@ -399,6 +477,15 @@ const ShiftDetails: React.FC<ShiftDetailsProps> = ({
             setSelectedTask(null);
           }}
           onSaved={handleIncidentSaved}
+        />
+      )}
+
+      {/* Team Assignment Modal */}
+      {showAssignModal && (
+        <AssignTeamModal
+          shift={shift}
+          onClose={() => setShowAssignModal(false)}
+          onSuccess={handleTeamAssigned}
         />
       )}
     </div>
