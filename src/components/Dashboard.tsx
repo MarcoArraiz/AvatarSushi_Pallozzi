@@ -70,9 +70,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     const dateString = currentDate.toISOString().split('T')[0];
     
     try {
-      // Ensure shifts exist for the current date
-      await ensureShiftsExist(dateString);
-      
       let query = supabase
         .from('shifts')
         .select('*')
@@ -92,30 +89,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     }
   };
 
-  const ensureShiftsExist = async (dateString: string) => {
-    const shiftTypes = ['apertura', 'cierre'];
-    
-    for (const type of shiftTypes) {
-      const { data: existingShift } = await supabase
-        .from('shifts')
-        .select('id')
-        .eq('date', dateString)
-        .eq('type', type)
-        .eq('area', 'salon')
-        .maybeSingle();
-
-      if (!existingShift) {
-        await supabase
-          .from('shifts')
-          .insert({
-            date: dateString,
-            type,
-            area: 'salon',
-            assigned_users: []
-          });
-      }
-    }
-  };
 
   const changeDate = (days: number) => {
     const newDate = new Date(currentDate);

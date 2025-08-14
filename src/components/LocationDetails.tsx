@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, MapPin, Users, Calendar, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Calendar, Clock, CheckCircle, AlertTriangle, Eye } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface LocationDetailsProps {
