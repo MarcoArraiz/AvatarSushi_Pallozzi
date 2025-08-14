@@ -44,6 +44,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   }, [user]);
 
   useEffect(() => {
+    if (userProfile?.role === 'supervisor') {
+      setShowLocations(true);
+    }
+  }, [userProfile]);
+
+  useEffect(() => {
     if (userProfile) {
       loadShiftsForDate();
     }
