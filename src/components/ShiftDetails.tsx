@@ -137,6 +137,7 @@ const ShiftDetails: React.FC<ShiftDetailsProps> = ({
   shift,
   user,
   userProfile,
+  locationContext,
   onBack,
   onUpdate
 }) => {
