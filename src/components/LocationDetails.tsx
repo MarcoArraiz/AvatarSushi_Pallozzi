@@ -133,29 +133,20 @@ const LocationDetails: React.FC<LocationDetailsProps> = ({ location, onBack, onV
   const createShiftsForLocation = async (locationId: string, date: string) => {
     const shiftTypes = ['apertura', 'cierre'];
     
-    for (const type of shiftTypes) {
-      // Check if shift already exists
-      const { data: existingShift } = await supabase
-        .from('shifts')
-        .select('id')
-        .eq('location_id', locationId)
-        .eq('date', date)
-        .eq('type', type)
-        .eq('area', 'salon')
-        .maybeSingle();
+    const shiftsToCreate = shiftTypes.map(type => ({
+      location_id: locationId,
+      date: date,
+      type: type,
+      area: 'salon',
+      assigned_users: []
+    }));
 
-      if (!existingShift) {
-        await supabase
-          .from('shifts')
-          .insert({
-            location_id: locationId,
-            date: date,
-            type: type,
-            area: 'salon',
-            assigned_users: []
-          });
-      }
-    }
+    await supabase
+      .from('shifts')
+      .upsert(shiftsToCreate, {
+        onConflict: 'date,type,area,location_id',
+        ignoreDuplicates: true
+      });
   };
   const getUserName = (userId: string) => {
     const user = users.find(u => u.id === userId);
