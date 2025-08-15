@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
-import { ChevronLeft, ChevronRight, Users, Settings, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Users, Settings, MapPin, Plus, Calendar, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import ShiftPanel from './ShiftPanel';
 import PersonnelManagement from './PersonnelManagement';
@@ -39,6 +39,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
   const [viewingLocationShift, setViewingLocationShift] = useState(false);
   const [locationContext, setLocationContext] = useState<any>(null);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [locationStats, setLocationStats] = useState<Record<string, any>>({});
 
   useEffect(() => {
     loadUserProfile();
@@ -46,12 +48,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   useEffect(() => {
     if (userProfile?.role === 'supervisor') {
-      setShowLocations(true);
+      loadLocations();
     }
   }, [userProfile]);
 
   useEffect(() => {
-    if (userProfile) {
+    if (userProfile && userProfile.role === 'garzon') {
       loadShiftsForDate();
     }
   }, [currentDate, userProfile]);
@@ -96,6 +98,58 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     }
   };
 
+  const loadLocations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('locations')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setLocations(data || []);
+      
+      // Load stats for each location
+      await loadLocationStats(data || []);
+    } catch (error) {
+      console.error('Error loading locations:', error);
+    }
+  };
+
+  const loadLocationStats = async (locations: any[]) => {
+    const stats: Record<string, any> = {};
+    const today = new Date().toISOString().split('T')[0];
+
+    for (const location of locations) {
+      try {
+        // Get shifts for today
+        const { data: shifts } = await supabase
+          .from('shifts')
+          .select('id, assigned_users')
+          .eq('location_id', location.id)
+          .eq('date', today);
+
+        const totalShifts = shifts?.length || 0;
+        const activeShifts = shifts?.filter(s => s.assigned_users.length > 0).length || 0;
+        
+        // Count unique assigned workers
+        const allAssignedUsers = new Set();
+        shifts?.forEach(shift => {
+          shift.assigned_users.forEach((userId: string) => allAssignedUsers.add(userId));
+        });
+
+        stats[location.id] = {
+          totalShifts,
+          activeShifts,
+          assignedWorkers: allAssignedUsers.size
+        };
+      } catch (error) {
+        console.error(`Error loading stats for location ${location.id}:`, error);
+        stats[location.id] = { totalShifts: 0, activeShifts: 0, assignedWorkers: 0 };
+      }
+    }
+
+    setLocationStats(stats);
+  };
 
   const changeDate = (days: number) => {
     const newDate = new Date(currentDate);
@@ -201,11 +255,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           {userProfile.role === 'supervisor' && (
             <div className="flex space-x-3">
               <button
-                onClick={() => setShowLocations(true)}
+                onClick={() => setShowPersonnel(true)}
                 className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
-                <MapPin className="w-4 h-4" />
-                <span>Gestionar Locales</span>
+                <Plus className="w-4 h-4" />
+                <span>Añadir Locales</span>
               </button>
               <button
                 onClick={() => setShowPersonnel(true)}
@@ -219,44 +273,115 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         </div>
       </div>
 
-      {/* Date Navigation */}
-      <div className="bg-white rounded-xl shadow-md p-4">
-        <div className="flex justify-between items-center">
-          <button
-            onClick={() => changeDate(-1)}
-            className="p-3 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <h3 className="text-xl font-bold text-gray-800 capitalize">
-            {formatDate(currentDate)}
-          </h3>
-          <button
-            onClick={() => changeDate(1)}
-            className="p-3 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+      {/* Date Navigation - Only for Garzones */}
+      {userProfile.role === 'garzon' && (
+        <div className="bg-white rounded-xl shadow-md p-4">
+          <div className="flex justify-between items-center">
+            <button
+              onClick={() => changeDate(-1)}
+              className="p-3 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h3 className="text-xl font-bold text-gray-800 capitalize">
+              {formatDate(currentDate)}
+            </h3>
+            <button
+              onClick={() => changeDate(1)}
+              className="p-3 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Shifts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {shifts.map((shift) => (
-          <ShiftPanel
-            key={shift.id}
-            shift={shift}
-            userProfile={userProfile}
-            onAssignTeam={loadShiftsForDate}
-            onViewDetails={() => setSelectedShift(shift)}
-          />
-        ))}
-      </div>
+      {/* Content based on role */}
+      {userProfile.role === 'supervisor' ? (
+        /* Locations Grid for Supervisors */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {locations.map((location) => {
+            const stats = locationStats[location.id] || { totalShifts: 0, activeShifts: 0, assignedWorkers: 0 };
+            
+            return (
+              <div key={location.id} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-blue-100 text-blue-600 p-2 rounded-lg">
+                      <MapPin className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-800">{location.name}</h3>
+                      <p className="text-sm text-gray-600">{location.address}</p>
+                    </div>
+                  </div>
+                </div>
 
-      {shifts.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No hay turnos disponibles para esta fecha.</p>
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center space-x-1 text-blue-600 mb-1">
+                      <Calendar className="w-4 h-4" />
+                    </div>
+                    <p className="text-2xl font-bold text-gray-800">{stats.totalShifts}</p>
+                    <p className="text-xs text-gray-500">Turnos Hoy</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center space-x-1 text-green-600 mb-1">
+                      <CheckCircle className="w-4 h-4" />
+                    </div>
+                    <p className="text-2xl font-bold text-gray-800">{stats.activeShifts}</p>
+                    <p className="text-xs text-gray-500">Activos</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center space-x-1 text-purple-600 mb-1">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <p className="text-2xl font-bold text-gray-800">{stats.assignedWorkers}</p>
+                    <p className="text-xs text-gray-500">Trabajadores</p>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <button
+                  onClick={() => setSelectedLocation(location)}
+                  className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                >
+                  <MapPin className="w-4 h-4" />
+                  <span>Ver Detalles</span>
+                </button>
+              </div>
+            );
+          })}
+
+          {locations.length === 0 && (
+            <div className="col-span-full text-center py-12">
+              <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-500">No hay locales registrados</p>
+            </div>
+          )}
         </div>
+      ) : (
+        /* Shifts Grid for Garzones */
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {shifts.map((shift) => (
+              <ShiftPanel
+                key={shift.id}
+                shift={shift}
+                userProfile={userProfile}
+                onAssignTeam={loadShiftsForDate}
+                onViewDetails={() => setSelectedShift(shift)}
+              />
+            ))}
+          </div>
+
+          {shifts.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No hay turnos disponibles para esta fecha.</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
