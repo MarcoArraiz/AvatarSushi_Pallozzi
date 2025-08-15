@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CheckCircle, Flag, Clock, User, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Flag, Clock, User, AlertTriangle, Users } from 'lucide-react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import IncidentModal from './IncidentModal';
