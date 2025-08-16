@@ -207,6 +207,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   }
 
   if (selectedShift) {
+    console.log('Rendering ShiftDetails with shift:', selectedShift);
+    console.log('Location context:', locationContext);
+    console.log('Viewing location shift:', viewingLocationShift);
     return (
       <ShiftDetails
         shift={selectedShift}
@@ -214,6 +217,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         userProfile={userProfile}
         locationContext={locationContext}
         onBack={() => {
+          console.log('ShiftDetails onBack called');
           setSelectedShift(null);
           setLocationContext(null);
           if (viewingLocationShift) {
@@ -224,6 +228,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           }
         }}
         onUpdate={() => {
+          console.log('ShiftDetails onUpdate called');
           if (!viewingLocationShift) {
             loadShiftsForDate();
           }
