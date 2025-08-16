@@ -187,7 +187,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       <LocationDetails
         location={selectedLocation}
         onBack={() => setSelectedLocation(null)}
-        onViewShift={(shift) => {
+        onViewShift={(shift: any) => {
+          console.log('Setting selected shift:', shift);
           setSelectedShift(shift);
           setViewingLocationShift(true);
           setLocationContext(selectedLocation);

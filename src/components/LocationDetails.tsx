@@ -280,7 +280,10 @@ const LocationDetails: React.FC<LocationDetailsProps> = ({ location, onBack, onV
 
               {/* View Shift Button */}
               <button
-                onClick={() => onViewShift(shift)}
+                onClick={() => {
+                  console.log('Clicking shift:', shift);
+                  onViewShift(shift);
+                }}
                 className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 mb-4"
               >
                 <Eye className="w-4 h-4" />
