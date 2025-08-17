@@ -268,7 +268,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <span>Añadir Locales</span>
               </button>
               <button
-                onClick={() => setShowPersonnel(true)}
+                onClick={() => setShowLocations(true)}
                 className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
               >
                 <Users className="w-4 h-4" />
