@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Calendar, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import LogoSyncro from '../assets/logo.svg';
 
 const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -32,12 +33,9 @@ const LoginForm: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+      <div className="bg-gray-100 rounded-2xl shadow-xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="bg-blue-600 text-white p-3 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <Calendar className="w-8 h-8" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Protocol Manager</h1>
+          <img className="h-[200px] w-full object-cover mb-4" src={LogoSyncro} alt="Syncro logo" />
           <p className="text-gray-600">Inicia sesión para continuar</p>
         </div>
 
